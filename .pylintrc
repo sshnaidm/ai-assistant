@@ -1,0 +1,14 @@
+[MESSAGES CONTROL]
+disable=
+    logging-fstring-interpolation,
+    duplicate-code,
+    too-many-positional-arguments,
+    too-many-arguments,
+    broad-exception-caught,
+    too-many-locals,
+    too-many-branches,
+    no-member,
+    too-many-statements,
+    too-many-lines
+[FORMAT]
+max-line-length=120
