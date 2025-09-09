@@ -1,0 +1,16 @@
+# Core application dependencies
+gradio
+langchain
+langchain-core
+langchain-google-genai
+langchain-ollama
+langchain-openai
+
+# Google API client libraries
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+# FastMCP server dependencies
+fastmcp
+pydantic
