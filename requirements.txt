@@ -14,3 +14,6 @@ google-auth-oauthlib
 # FastMCP server dependencies
 fastmcp
 pydantic
+
+# For ADK
+google-adk

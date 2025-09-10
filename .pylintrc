@@ -9,6 +9,8 @@ disable=
     too-many-branches,
     no-member,
     too-many-statements,
-    too-many-lines
+    too-many-lines,
+    too-many-nested-blocks,
+    wrong-import-position
 [FORMAT]
 max-line-length=120

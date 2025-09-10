@@ -25,6 +25,42 @@ End-to-end assistant for Gmail and Google Calendar with:
   - `assistant.py`: interactive agent with clarifying questions.
   - `automation_agent.py`: non-interactive agent (no `ask_user`), strict literal-JSON tool inputs.
 
+### Google ADK agents (Web UI and CLI)
+
+This repo also includes Google ADK-based agents that wrap the same Gmail/Calendar tools and can be used with the ADK Dev UI or the terminal.
+
+- Package: `adk_assistant/`
+  - `adk_assistant/adk_assistant_agent.py`: agent definition using ADK `FunctionTool`s; supports terminal chat.
+  - `adk_assistant/agent.py`: ADK discovery entrypoint that exposes `root_agent`, `agent`, and `agents=[root_agent]`.
+
+Prerequisites:
+- `pip install google-adk`
+- Model auth: set `GOOGLE_API_KEY` (or use Vertex AI vars per ADK docs)
+
+Run with the Web UI (Dev UI):
+```bash
+cd /home/sshnaidm/sources/ai-assistant
+adk web
+# then open the provided URL and select the agent exposed by adk_assistant
+```
+If your ADK version requires an explicit agent target, use:
+```bash
+adk web --agent adk_assistant.agent:root_agent
+```
+See ADK Quickstart for structure and details: [link](https://google.github.io/adk-docs/get-started/quickstart/#create-multitoolagentjava).
+
+Run in the terminal (two options):
+```bash
+# Option A: ADK CLI
+adk run adk_assistant.agent:root_agent
+
+# Option B: the built-in terminal runner in this repo
+python -m adk_assistant.adk_assistant_agent
+```
+Notes:
+- The terminal runner prints both tool outputs (e.g., created event details) and model text responses.
+- Tool descriptions shown in the ADK UI are synced from the MCP tool descriptions.
+
 ## Prerequisites
 
 - Python 3.9+
