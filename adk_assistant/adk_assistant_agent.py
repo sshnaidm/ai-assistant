@@ -18,6 +18,7 @@ from typing import List, Optional
 
 from google import adk  # type: ignore
 from google.adk.models import Gemini  # type: ignore
+from google.adk.models.lite_llm import LiteLlm  # type: ignore
 from google.adk.runners import Runner  # type: ignore
 from google.adk.sessions import InMemorySessionService  # type: ignore
 from google.adk.tools.function_tool import FunctionTool  # type: ignore
@@ -60,12 +61,13 @@ But try to ask the user for clarification if possible.
 
 # Strictly typed wrappers around MCP tools (avoid typing.Any for ADK tool schema)
 
-def list_gmail_tools() -> str:
+
+def list_gmail_tools(dummy: Optional[str] = None) -> str:
     """List all available Gmail MCP tools."""
     return mcp_gmail.list_gmail_tools.fn()  # type: ignore[attr-defined]
 
 
-def list_calendar_tools() -> str:
+def list_calendar_tools(dummy: Optional[str] = None) -> str:
     """List all available Google Calendar MCP tools."""
     return mcp_calendar.list_calendar_tools.fn()  # type: ignore[attr-defined]
 
@@ -110,7 +112,7 @@ def send_email_tool(
     )
 
 
-def get_today_date() -> str:
+def get_today_date(dummy: Optional[str] = None) -> str:
     """Get today's date and weekday as JSON string."""
     return mcp_gmail.get_today_date.fn({})  # type: ignore[attr-defined]
 
@@ -274,12 +276,31 @@ def _build_adk_agent():
     if not os.getenv("GOOGLE_API_KEY") and os.getenv("GEMINI_API_KEY"):
         os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY", "")
 
+    model = os.getenv("MODEL", "gemini-2.5-flash")
+    # Normalize and route Ollama providers; prefer chat provider for tools
+    if model.startswith("ollama/"):
+        model = model.replace("ollama/", "ollama_chat/")
+    if model.startswith("ollama_chat/"):
+        ollama_base = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        model = LiteLlm(
+            model=model,
+            api_base=ollama_base,
+            temperature=0.0,
+            top_p=0.0,
+            num_ctx=128000,
+        )
+    elif model.startswith("gemini"):
+        model = Gemini(model=model)
+    else:
+        model = LiteLlm(model=model)
+
     agent = adk.Agent(  # type: ignore[attr-defined]
-        name="my_adk_agent",
-        model=Gemini(model="gemini-1.5-pro-latest"),
+        name="adk_assistant",
+        model=model,
         instruction=ADK_INSTRUCTIONS,
         tools=_build_tools(),
     )
+
     return agent
 
 
@@ -365,6 +386,7 @@ def main():
             print(f"[event] {type(event).__name__}")
         except Exception as e:  # pylint: disable=broad-exception-caught
             print(f"[event-error] {type(event).__name__}: {e}")
+
     while True:
         try:
             user_msg = input("You: ").strip()
