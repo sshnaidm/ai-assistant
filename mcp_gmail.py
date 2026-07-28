@@ -1,6 +1,5 @@
 """This module provides a FastMCP tool for fetching emails from Gmail."""
 
-import ast
 import datetime
 import json
 import logging
@@ -9,7 +8,8 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from gmail import get_emails, send_email
+from gmail import get_emails, get_thread, modify_labels, reply_to_email, send_email
+from utils import parse_input
 
 # Set up completely independent logging for this module
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -93,17 +93,6 @@ mcp = FastMCP(
     ),
 )
 logger.debug("FastMCP server initialized successfully")
-
-
-def parse_input(input_str: str) -> dict:
-    """
-    Parse the input string into a dictionary.
-    """
-    input_str = input_str.strip()
-    try:
-        return json.loads(input_str)
-    except json.JSONDecodeError:
-        return ast.literal_eval(input_str.replace("null", "None").replace("true", "True").replace("false", "False"))
 
 
 @mcp.tool(
@@ -307,16 +296,109 @@ def send_email_tool(
 
 
 @mcp.tool(
+    name="Get Email Thread",
+    description="Fetch all messages in a specific email thread by thread_id.",
+)
+def get_thread_tool(thread_id: Any) -> str:
+    """Fetch all messages in a specific thread."""
+    if isinstance(thread_id, str) and thread_id.strip().startswith("{") and thread_id.strip().endswith("}"):
+        params = parse_input(thread_id)
+        thread_id = params.get("thread_id", thread_id)
+
+    if not thread_id:
+        return "Validation error: 'thread_id' is required."
+
+    try:
+        return get_thread(str(thread_id))
+    except Exception as e:
+        logger.error(f"Error in get_thread_tool: {e}", exc_info=True)
+        return f"Error fetching thread: {e}"
+
+
+@mcp.tool(
+    name="Reply to Email Thread",
+    description="Reply to an existing email thread. Creates a draft by default (draft_mode=true).",
+)
+def reply_to_email_tool(
+    thread_id: Any,
+    body: Any,
+    to: Any = None,
+    subject: Any = None,
+    html_body: Any = None,
+    draft_mode: Any = True,
+) -> str:
+    """Reply to an existing email thread."""
+    if isinstance(thread_id, str) and thread_id.strip().startswith("{") and thread_id.strip().endswith("}"):
+        params = parse_input(thread_id)
+        thread_id = params.get("thread_id")
+        body = params.get("body", body)
+        to = params.get("to", to)
+        subject = params.get("subject", subject)
+        html_body = params.get("html_body", html_body)
+        draft_mode = params.get("draft_mode", draft_mode)
+
+    if not thread_id or not body:
+        return "Validation error: 'thread_id' and 'body' are required."
+
+    try:
+        return reply_to_email(
+            thread_id=str(thread_id),
+            body=str(body),
+            to=to,
+            subject=subject,
+            html_body=html_body,
+            draft_mode=draft_mode,
+        )
+    except Exception as e:
+        logger.error(f"Error in reply_to_email_tool: {e}", exc_info=True)
+        return f"Error replying to thread: {e}"
+
+
+@mcp.tool(
+    name="Modify Email Labels",
+    description="Modify labels on an email message (e.g. add/remove STARRED, UNREAD, INBOX for archiving).",
+)
+def modify_labels_tool(
+    message_id: Any,
+    add_labels: Any = None,
+    remove_labels: Any = None,
+) -> str:
+    """Modify labels on an email message."""
+    if isinstance(message_id, str) and message_id.strip().startswith("{") and message_id.strip().endswith("}"):
+        params = parse_input(message_id)
+        message_id = params.get("message_id")
+        add_labels = params.get("add_labels", add_labels)
+        remove_labels = params.get("remove_labels", remove_labels)
+
+    if not message_id:
+        return "Validation error: 'message_id' is required."
+
+    if isinstance(add_labels, str):
+        add_labels = [lbl.strip() for lbl in add_labels.split(",")]
+    if isinstance(remove_labels, str):
+        remove_labels = [lbl.strip() for lbl in remove_labels.split(",")]
+
+    try:
+        return modify_labels(
+            message_id=str(message_id),
+            add_labels=add_labels,
+            remove_labels=remove_labels,
+        )
+    except Exception as e:
+        logger.error(f"Error in modify_labels_tool: {e}", exc_info=True)
+        return f"Error modifying labels: {e}"
+
+
+@mcp.tool(
     name="Get Today's Date",
     description=(
         'Get today\'s date with weekday as JSON. Returns: {"date": "YYYY-MM-DD", "weekday": "Monday"}. '
         "Doesn't require any input parameters."
     ),
 )
-def get_today_date(test) -> str:
+def get_today_date() -> str:
     """Return today's date and weekday as a JSON string."""
     logger.debug("get_today_date called")
-    logger.debug(f"get_today_date Test parameter: {test}")
     now = datetime.datetime.now()
     payload = {
         "date": now.strftime("%Y-%m-%d"),

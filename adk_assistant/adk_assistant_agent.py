@@ -64,11 +64,13 @@ But try to ask the user for clarification if possible.
 
 def list_gmail_tools(dummy: Optional[str] = None) -> str:
     """List all available Gmail MCP tools."""
+    # pylint: disable=unused-argument
     return mcp_gmail.list_gmail_tools.fn()  # type: ignore[attr-defined]
 
 
 def list_calendar_tools(dummy: Optional[str] = None) -> str:
     """List all available Google Calendar MCP tools."""
+    # pylint: disable=unused-argument
     return mcp_calendar.list_calendar_tools.fn()  # type: ignore[attr-defined]
 
 
@@ -114,6 +116,7 @@ def send_email_tool(
 
 def get_today_date(dummy: Optional[str] = None) -> str:
     """Get today's date and weekday as JSON string."""
+    # pylint: disable=unused-argument
     return mcp_gmail.get_today_date.fn({})  # type: ignore[attr-defined]
 
 

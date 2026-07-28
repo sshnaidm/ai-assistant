@@ -6,8 +6,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
+api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
 gemini = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash", temperature=0.0, top_p=0.0, google_api_key=os.getenv("GEMINI_API_KEY")
+    model="gemini-2.5-flash", temperature=0.0, top_p=0.0, google_api_key=api_key
 )
 
 openai = ChatOpenAI(model="gpt-4o-mini", temperature=0.0, top_p=0.0, api_key=os.getenv("OPENAI_API_KEY"))

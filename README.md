@@ -195,7 +195,16 @@ Option A: Project-level `.cursor/mcp.json` (create in your repo root):
 
 Option B: Cursor Settings → MCP → Add servers (same fields as above). Ensure absolute paths.
 
-### Claude Code (Claude Desktop)
+### Claude Code (CLI)
+
+```bash
+claude mcp add -s user -e CREDENTIALS_FILE=$HOME/.config/credentials.json -- gmail_mails $HOME/venvs/ai-assistant/bin/fastmcp run -t stdio $HOME/sources/ai-assistant/mcp_gmail.py
+claude mcp add -s user -e CREDENTIALS_FILE=$HOME/.config/credentials.json -- google_calendar $HOME/venvs/ai-assistant/bin/fastmcp run -t stdio $HOME/sources/ai-assistant/mcp_calendar.py
+```
+
+Restart Claude Code after adding. Verify with `claude mcp list`.
+
+### Claude Desktop
 
 Create or edit `~/.config/Claude/claude_desktop_config.json` (Linux; macOS and Windows use their respective app config dirs):
 
@@ -244,7 +253,15 @@ python automation_agent.py --prompt "plan 30-min meeting with alice@example.com 
 
 ## Tips & Troubleshooting
 
-- OAuth scopes changed? Delete `token.json` and re-auth.
+- OAuth scopes changed or token expired? Delete `token.json` and re-auth:
+
+```bash
+rm ~/sources/ai-assistant/token.json
+cd ~/sources/ai-assistant && CREDENTIALS_FILE=~/.config/credentials.json ~/venvs/ai-assistant/bin/python -c "from gmail import get_emails; get_emails()"
+```
+
+  This opens a browser for OAuth consent with all required scopes. After authorizing, a new `token.json` is created.
+
 - Attachments not found? Use absolute paths for reliability.
 - Calendar preferred times ignored? Ensure `preferred_time_start`/`preferred_time_end` are HH:MM strings.
 

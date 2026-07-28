@@ -13,8 +13,8 @@ except ImportError:
     logger = logging.getLogger(__name__)
 
 import gradio as gr
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.tools import Tool
+from langchain_classic.agents import AgentExecutor, create_react_agent
+from langchain_core.tools import Tool
 from langchain_core.prompts import PromptTemplate
 
 import additional_mcp
@@ -145,7 +145,18 @@ tools = [
         description=mcp_calendar.list_calendar_tools.description,
     ),
     Tool(name="get_emails_tool", func=mcp_gmail.get_emails_tool.fn, description=mcp_gmail.get_emails_tool.description),
+    Tool(name="get_email_thread", func=mcp_gmail.get_thread_tool.fn, description=mcp_gmail.get_thread_tool.description),
     Tool(name="send_email_tool", func=mcp_gmail.send_email_tool.fn, description=mcp_gmail.send_email_tool.description),
+    Tool(
+        name="reply_to_email_thread",
+        func=mcp_gmail.reply_to_email_tool.fn,
+        description=mcp_gmail.reply_to_email_tool.description,
+    ),
+    Tool(
+        name="modify_email_labels",
+        func=mcp_gmail.modify_labels_tool.fn,
+        description=mcp_gmail.modify_labels_tool.description,
+    ),
     Tool(name="get_today_date", func=mcp_gmail.get_today_date.fn, description=mcp_gmail.get_today_date.description),
     Tool(
         name="get_calendar_events",
@@ -176,6 +187,16 @@ tools = [
         name="get_free_busy",
         func=mcp_calendar.get_free_busy_tool.fn,
         description=mcp_calendar.get_free_busy_tool.description,
+    ),
+    Tool(
+        name="list_calendars",
+        func=mcp_calendar.list_calendars_tool.fn,
+        description=mcp_calendar.list_calendars_tool.description,
+    ),
+    Tool(
+        name="quick_add_calendar_event",
+        func=mcp_calendar.quick_add_event_tool.fn,
+        description=mcp_calendar.quick_add_event_tool.description,
     ),
     Tool(
         name="ask_user",
@@ -316,7 +337,6 @@ with gr.Blocks() as demo:
 
     gr.ChatInterface(
         chat,
-        type="messages",
         save_history=True,
     )
 
