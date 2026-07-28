@@ -26,23 +26,17 @@ except ImportError:
     )
     logger = logging.getLogger(__name__)
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-
-# If modifying these scopes, delete the file token.json.
-SCOPES = [
-    "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.compose",  # For creating drafts
-    "https://www.googleapis.com/auth/gmail.send",  # For sending emails
-    "https://www.googleapis.com/auth/calendar.readonly",  # For reading calendar events
-    "https://www.googleapis.com/auth/calendar.events",  # For creating/modifying calendar events
-]
-CREDENTIALS_FILE = os.environ.get("CREDENTIALS_FILE", os.path.expanduser("~/.config/credentials.json"))
+from auth import get_credentials
 
 logger.info("gmail module initialized")
+
+
+def get_gmail_service():
+    """Build and return Gmail API service using central auth."""
+    creds = get_credentials()
+    return build("gmail", "v1", credentials=creds)
 
 
 def get_message_body(payload: dict) -> str:
@@ -71,44 +65,19 @@ def get_message_body(payload: dict) -> str:
     return ""  # Return empty string if no plain text part is found
 
 
-# pylint: disable=too-many-locals,too-many-statements
 def get_emails(gmail_query: str = "to:me in:Inbox", count: int = 50, page: int = 1, full_body: bool = False):
-    """Fetches emails based on the provided query.
-    Args:
-        gmail_query (str): Gmail query to filter emails. Default is 'to:me in:inbox'.
-        count (int): Number of emails to fetch per page. Default is 100.
-        page (int): Page number for pagination. Default is 1.
-        full_body (bool): If True, fetches the full body of the email. If False, fetches only the snippet.
-    Returns:
-        str: A formatted string containing emails details.
-    """
+    """Fetches emails based on the provided query."""
     logger.info(
         f"Starting get_emails with gmail_query='{gmail_query}' count='{count}' page='{page}', full_body='{full_body}'"
     )
 
-    logger.info(f"Fetching emails with query='{gmail_query}', count={count}, page={page}, full_body={full_body}")
-    creds = None
-    # The file token.json stores the user's access and refresh tokens.
-    if os.path.exists("token.json"):
-        logger.info("Found token.json, loading credentials.")
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            logger.info("Credentials expired, refreshing token.")
-            creds.refresh(Request())
-        else:
-            logger.info("No valid credentials found, starting OAuth flow.")
-            # YOU MUST HAVE your credentials.json file from Google Cloud here
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open("token.json", "w", encoding="utf-8") as token:
-            logger.info("Saving new credentials to token.json.")
-            token.write(creds.to_json())
+    count = int(count)
+    page = int(page)
+    if isinstance(full_body, str):
+        full_body = full_body.lower() in ("true", "1", "yes")
 
     try:
-        service = build("gmail", "v1", credentials=creds)
+        service = get_gmail_service()
         logger.info("Gmail service built successfully.")
 
         # Get a list of messages
@@ -186,26 +155,7 @@ def send_email(
         bcc = [bcc]
 
     try:
-        # Get credentials
-        creds = None
-        if os.path.exists("token.json"):
-            logger.info("Found token.json, loading credentials.")
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                logger.info("Credentials expired, refreshing token.")
-                creds.refresh(Request())
-            else:
-                logger.info("No valid credentials found, starting OAuth flow.")
-                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-                creds = flow.run_local_server(port=0)
-            # Save the credentials
-            with open("token.json", "w", encoding="utf-8") as token:
-                logger.info("Saving new credentials to token.json.")
-                token.write(creds.to_json())
-
-        service = build("gmail", "v1", credentials=creds)
+        service = get_gmail_service()
         logger.info("Gmail service built successfully.")
 
         # Create message
@@ -296,6 +246,109 @@ def send_email(
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"An error occurred: {e}", exc_info=True)
         return f"An error occurred while {'creating draft' if draft_mode else 'sending email'}: {e}"
+
+
+def get_thread(thread_id: str) -> str:
+    """Fetch all messages in a specific email thread by thread_id."""
+    logger.info(f"Fetching thread with ID: {thread_id}")
+    try:
+        service = get_gmail_service()
+        thread = service.users().threads().get(userId="me", id=thread_id).execute()
+        messages = thread.get("messages", [])
+
+        if not messages:
+            return f"No messages found for thread ID: {thread_id}"
+
+        result = f"--- Thread Report (ID: {thread_id}, {len(messages)} messages) ---\n"
+        for msg in messages:
+            headers = {h["name"]: h["value"] for h in msg["payload"].get("headers", [])}
+            result += f"\nMessage ID: {msg['id']}\n"
+            result += f"From: {headers.get('From', 'Unknown')}\n"
+            result += f"To: {headers.get('To', 'Unknown')}\n"
+            result += f"Date: {headers.get('Date', 'Unknown')}\n"
+            result += f"Subject: {headers.get('Subject', 'No Subject')}\n"
+            body = get_message_body(msg["payload"])
+            result += f"Body:\n{body}\n"
+            result += "-" * 40 + "\n"
+
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching thread {thread_id}: {e}", exc_info=True)
+        return f"An error occurred while fetching thread: {e}"
+
+
+def reply_to_email(
+    thread_id: str,
+    body: str,
+    to: Optional[str] = None,
+    subject: Optional[str] = None,
+    html_body: Optional[str] = None,
+    draft_mode: bool = True,
+) -> str:
+    """Reply to an existing email thread."""
+    logger.info(f"Replying to thread ID: {thread_id}")
+    try:
+        service = get_gmail_service()
+        thread = service.users().threads().get(userId="me", id=thread_id).execute()
+        messages = thread.get("messages", [])
+
+        if not messages:
+            return f"Thread {thread_id} not found."
+
+        last_msg = messages[-1]
+        headers = {h["name"]: h["value"] for h in last_msg["payload"].get("headers", [])}
+
+        if not to:
+            to = headers.get("Reply-To") or headers.get("From")
+        if not subject:
+            orig_subject = headers.get("Subject", "")
+            subject = orig_subject if orig_subject.lower().startswith("re:") else f"Re: {orig_subject}"
+
+        message_id_header = headers.get("Message-ID") or headers.get("Message-Id")
+
+        message = MIMEText(body, "plain") if not html_body else MIMEMultipart("alternative")
+        if html_body:
+            message.attach(MIMEText(body, "plain"))
+            message.attach(MIMEText(html_body, "html"))
+
+        message["to"] = to
+        message["subject"] = subject
+        if message_id_header:
+            message["In-Reply-To"] = message_id_header
+            message["References"] = message_id_header
+
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+        body_message = {"raw": raw_message, "threadId": thread_id}
+
+        if draft_mode:
+            draft = {"message": body_message}
+            res = service.users().drafts().create(userId="me", body=draft).execute()
+            return f"Reply draft created successfully! Draft ID: {res['id']}\nThread ID: {thread_id}"
+        res = service.users().messages().send(userId="me", body=body_message).execute()
+        return f"Reply sent successfully! Message ID: {res['id']}\nThread ID: {thread_id}"
+    except Exception as e:
+        logger.error(f"Error replying to thread {thread_id}: {e}", exc_info=True)
+        return f"Failed to reply to thread: {e}"
+
+
+def modify_labels(
+    message_id: str,
+    add_labels: Optional[List[str]] = None,
+    remove_labels: Optional[List[str]] = None,
+) -> str:
+    """Modify labels on a message (e.g. archive by removing INBOX, star by adding STARRED, mark read)."""
+    logger.info(f"Modifying labels for message {message_id}")
+    try:
+        service = get_gmail_service()
+        body = {
+            "addLabelIds": add_labels or [],
+            "removeLabelIds": remove_labels or [],
+        }
+        res = service.users().messages().modify(userId="me", id=message_id, body=body).execute()
+        return f"Labels modified successfully for message {message_id}. Current labels: {res.get('labelIds', [])}"
+    except Exception as e:
+        logger.error(f"Error modifying labels for message {message_id}: {e}", exc_info=True)
+        return f"Failed to modify labels: {e}"
 
 
 # Example usage:

@@ -1,6 +1,7 @@
 # Core application dependencies
 gradio
 langchain
+langchain-classic
 langchain-core
 langchain-google-genai
 langchain-ollama

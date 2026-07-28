@@ -19,8 +19,8 @@ except ImportError:  # pragma: no cover
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.tools import Tool
+from langchain_classic.agents import AgentExecutor, create_react_agent
+from langchain_core.tools import Tool
 from langchain_core.prompts import PromptTemplate
 
 import mcp_calendar

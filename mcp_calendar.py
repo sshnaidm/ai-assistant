@@ -15,6 +15,8 @@ from google_calendar import (
     find_meeting_slots,
     get_events,
     get_free_busy,
+    list_calendars,
+    quick_add_event,
     update_event,
 )
 
@@ -624,16 +626,53 @@ def get_free_busy_tool(
 
 
 @mcp.tool(
+    name="List Calendars",
+    description="List all accessible Google Calendars for the user.",
+)
+def list_calendars_tool() -> str:
+    """List all accessible calendars."""
+    logger.info("list_calendars_tool called")
+    try:
+        return list_calendars()
+    except Exception as e:
+        logger.error(f"Error listing calendars: {e}", exc_info=True)
+        return f"Error listing calendars: {e}"
+
+
+@mcp.tool(
+    name="Quick Add Calendar Event",
+    description="Quickly create a calendar event using natural language (e.g., 'Dinner with John tomorrow at 7pm').",
+)
+def quick_add_event_tool(
+    text: Any,
+    calendar_id: Any = "primary",
+) -> str:
+    """Quick add event from natural language description."""
+    if isinstance(text, str) and text.strip().startswith("{") and text.strip().endswith("}"):
+        params = parse_input(text)
+        text = params.get("text", text)
+        calendar_id = params.get("calendar_id", calendar_id)
+
+    if not text:
+        return "Validation error: 'text' parameter is required."
+
+    try:
+        return quick_add_event(text=str(text), calendar_id=str(calendar_id))
+    except Exception as e:
+        logger.error(f"Error in quick_add_event_tool: {e}", exc_info=True)
+        return f"Error creating event: {e}"
+
+
+@mcp.tool(
     name="Get Today's Date",
     description=(
         'Get today\'s date with weekday as JSON. Returns: {"date": "YYYY-MM-DD", "weekday": "Monday"}. '
         "Doesn't require any input parameters."
     ),
 )
-def get_today_date(test) -> str:
+def get_today_date() -> str:
     """Return today's date and weekday as a JSON string."""
     logger.debug("get_today_date called")
-    logger.debug(f"get_today_date must be empty dict: {test}")
     now = datetime.datetime.now()
     payload = {"date": now.strftime("%Y-%m-%d"), "weekday": now.strftime("%A")}
     result = json.dumps(payload)
