@@ -2,6 +2,7 @@
 
 import os
 from datetime import datetime, time, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
@@ -16,7 +17,10 @@ except ImportError:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s:%(lineno)d - %(message)s",
-        handlers=[logging.FileHandler("mcp_calendar.log"), logging.StreamHandler()],
+        handlers=[
+            logging.FileHandler(Path(__file__).resolve().parent / "mcp_calendar.log"),
+            logging.StreamHandler(),
+        ],
     )
     logger = logging.getLogger(__name__)
 

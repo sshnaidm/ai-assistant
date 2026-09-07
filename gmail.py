@@ -9,6 +9,7 @@ from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 from typing import List, Optional
 
 # Try to import centralized logging, fall back to basic config if not available
@@ -22,7 +23,10 @@ except ImportError:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s:%(lineno)d - %(message)s",
-        handlers=[logging.FileHandler("mcp_gmail.log"), logging.StreamHandler()],
+        handlers=[
+            logging.FileHandler(Path(__file__).resolve().parent / "mcp_gmail.log"),
+            logging.StreamHandler(),
+        ],
     )
     logger = logging.getLogger(__name__)
 

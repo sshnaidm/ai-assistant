@@ -2,13 +2,15 @@
 
 import logging
 import os
+from pathlib import Path
 
 # Get log level from environment (single source of truth)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 NUMERIC_LEVEL = getattr(logging, LOG_LEVEL, logging.INFO)
 
-# Single log file for the entire project
-LOG_FILE = "assistant_agent.log"
+# Anchor log files to the repository instead of the caller's working directory.
+PROJECT_DIR = Path(__file__).resolve().parent
+LOG_FILE = PROJECT_DIR / "assistant_agent.log"
 
 # Standard format for all logs
 LOG_FORMAT = "%(asctime)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s"
