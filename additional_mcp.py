@@ -2,6 +2,7 @@
 
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
@@ -14,7 +15,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(NUMERIC_LEVEL)
 logger.handlers = []
 
-file_handler = logging.FileHandler("additional_mcp.log", mode="a")
+LOG_FILE = Path(__file__).resolve().parent / "additional_mcp.log"
+file_handler = logging.FileHandler(LOG_FILE, mode="a")
 file_handler.setLevel(NUMERIC_LEVEL)
 file_fmt = logging.Formatter("%(asctime)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s")
 file_handler.setFormatter(file_fmt)

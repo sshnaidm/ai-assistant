@@ -247,8 +247,9 @@ python automation_agent.py --prompt "plan 30-min meeting with alice@example.com 
 
 ## Logging
 
-- Central log file (for modules that opt-in): `gmail_agent.log` via `logging_config.py`.
-- Independent logs per MCP server: `mcp_gmail.log`, `mcp_calendar.log`.
+- Central log file (for modules that opt in): `assistant_agent.log` via `logging_config.py`.
+- Independent MCP server logs: `mcp_gmail.log`, `mcp_calendar.log`, and `additional_mcp.log`.
+- All log paths are anchored to this repository directory, regardless of the caller's working directory.
 - Control verbosity with `LOG_LEVEL`. Console output filters third-party noise.
 
 ## Tips & Troubleshooting

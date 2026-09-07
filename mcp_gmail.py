@@ -4,6 +4,7 @@ import datetime
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
@@ -23,7 +24,8 @@ logger.setLevel(NUMERIC_LEVEL)
 logger.handlers = []
 
 # Create file handler
-file_handler = logging.FileHandler("mcp_gmail.log", mode="a")
+LOG_FILE = Path(__file__).resolve().parent / "mcp_gmail.log"
+file_handler = logging.FileHandler(LOG_FILE, mode="a")
 file_handler.setLevel(NUMERIC_LEVEL)
 file_formatter = logging.Formatter("%(asctime)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s")
 file_handler.setFormatter(file_formatter)
